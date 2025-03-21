@@ -1,3 +1,0 @@
-/home/tan/program/CppWorkSpace/WebServer/build/CMakeFiles/server.dir
-/home/tan/program/CppWorkSpace/WebServer/build/CMakeFiles/edit_cache.dir
-/home/tan/program/CppWorkSpace/WebServer/build/CMakeFiles/rebuild_cache.dir
