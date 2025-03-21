@@ -69,7 +69,7 @@ MYSQL *connection_pool::GetConnection()
 
 	reserve.wait();
 	
-	lock.lock();
+	std::lock_guard<std::mutex> lock(mtx_);
 
 	con = connList.front();
 	connList.pop_front();
@@ -77,7 +77,6 @@ MYSQL *connection_pool::GetConnection()
 	--m_FreeConn;
 	++m_CurConn;
 
-	lock.unlock();
 	return con;
 }
 
@@ -87,13 +86,11 @@ bool connection_pool::ReleaseConnection(MYSQL *con)
 	if (NULL == con)
 		return false;
 
-	lock.lock();
+	std::lock_guard<std::mutex> lock(mtx_);
 
 	connList.push_back(con);
 	++m_FreeConn;
 	--m_CurConn;
-
-	lock.unlock();
 
 	reserve.post();
 	return true;
@@ -102,8 +99,7 @@ bool connection_pool::ReleaseConnection(MYSQL *con)
 //销毁数据库连接池
 void connection_pool::DestroyPool()
 {
-
-	lock.lock();
+	std::lock_guard<std::mutex> lock(mtx_);
 	if (connList.size() > 0)
 	{
 		list<MYSQL *>::iterator it;
@@ -116,8 +112,6 @@ void connection_pool::DestroyPool()
 		m_FreeConn = 0;
 		connList.clear();
 	}
-
-	lock.unlock();
 }
 
 //当前空闲的连接数

@@ -1,6 +1,7 @@
 #ifndef _CONNECTION_POOL_
 #define _CONNECTION_POOL_
 
+#include <mutex>
 #include <stdio.h>
 #include <list>
 #include <mysql/mysql.h>
@@ -33,7 +34,7 @@ private:
 	int m_MaxConn;  		// 最大连接数
 	int m_CurConn;  		// 当前已使用的连接数
 	int m_FreeConn; 		// 当前空闲的连接数
-	locker lock;			// 互斥锁，保护共享资源
+	std::mutex mtx_;			// 互斥锁，保护共享资源
 	list<MYSQL *> connList; // 数据库连接池
 	sem reserve;			// 信号量，用于管理连接可用性
 
