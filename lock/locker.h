@@ -51,29 +51,6 @@ private:
     std::unique_ptr<Impl> impl_;  // 使用智能指针支持移动
 };
 
-class locker {
-public:
-    locker() = default;
-
-    locker(const locker&) = delete;
-    locker& operator=(const locker&) = delete;
-
-    void lock() {
-        mutex_.lock();
-    }
-
-    void unlock() {
-        mutex_.unlock();
-    }
-
-    std::mutex* get() {
-        return &mutex_;
-    }
-
-private:
-    std::mutex mutex_;
-};
-
 class cond {
 public:
     cond() = default;
