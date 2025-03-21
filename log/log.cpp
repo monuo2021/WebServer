@@ -99,55 +99,54 @@ void Log::write_log(int level, const char *format, ...)
         break;
     }
     //写入一个log，对m_count++, m_split_lines最大行数
-    m_mutex.lock();
-    m_count++;
-
-    // 如果当前日期与记录的日志日期不同（跨天），或者日志行数达到文件分割阈值m_split_lines。
-    if (m_today != my_tm.tm_mday || m_count % m_split_lines == 0) //everyday log
     {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_count++;
+
+        // 如果当前日期与记录的日志日期不同（跨天），或者日志行数达到文件分割阈值m_split_lines。
+        if (m_today != my_tm.tm_mday || m_count % m_split_lines == 0) //everyday log
+        {
+            
+            char new_log[256] = {0};
+            fflush(m_fp);
+            fclose(m_fp);
+            char tail[16] = {0};
         
-        char new_log[256] = {0};
-        fflush(m_fp);
-        fclose(m_fp);
-        char tail[16] = {0};
-       
-        snprintf(tail, 16, "%d_%02d_%02d_", my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday);
-       
-        if (m_today != my_tm.tm_mday)
-        {
-            snprintf(new_log, 255, "%s%s%s", dir_name, tail, log_name);
-            m_today = my_tm.tm_mday;
-            m_count = 0;
+            snprintf(tail, 16, "%d_%02d_%02d_", my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday);
+        
+            if (m_today != my_tm.tm_mday)
+            {
+                snprintf(new_log, 255, "%s%s%s", dir_name, tail, log_name);
+                m_today = my_tm.tm_mday;
+                m_count = 0;
+            }
+            else
+            {
+                snprintf(new_log, 255, "%s%s%s.%lld", dir_name, tail, log_name, m_count / m_split_lines);
+            }
+            m_fp = fopen(new_log, "a");
         }
-        else
-        {
-            snprintf(new_log, 255, "%s%s%s.%lld", dir_name, tail, log_name, m_count / m_split_lines);
-        }
-        m_fp = fopen(new_log, "a");
     }
- 
-    m_mutex.unlock();
 
     // va_list 指向可变参数列表，用于存储用户传入的日志内容。用法见：https://www.cnblogs.com/pengdonglin137/p/3345911.html
     va_list valst;
     va_start(valst, format);
 
     string log_str;
-    m_mutex.lock();
-
-    // 使用 snprintf 将时间戳和日志等级（s）写入 m_buf，包括年、月、日、时、分、秒、微秒。
-    // 例如：2024-12-13 14:35:12.123456 [info]: 
-    int n = snprintf(m_buf, 48, "%d-%02d-%02d %02d:%02d:%02d.%06ld %s ",
-                     my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday,
-                     my_tm.tm_hour, my_tm.tm_min, my_tm.tm_sec, now.tv_usec, s);
-    
-    // 使用 vsnprintf 将用户传入的日志内容（format 和后续参数）追加到 m_buf 中。
-    int m = vsnprintf(m_buf + n, m_log_buf_size - n - 1, format, valst);
-    m_buf[n + m] = '\n';
-    m_buf[n + m + 1] = '\0';
-    log_str = m_buf;    // 将日志缓冲区 m_buf 转换为 C++ 的 std::string，存入 log_str
-
-    m_mutex.unlock();
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        // 使用 snprintf 将时间戳和日志等级（s）写入 m_buf，包括年、月、日、时、分、秒、微秒。
+        // 例如：2024-12-13 14:35:12.123456 [info]: 
+        int n = snprintf(m_buf, 48, "%d-%02d-%02d %02d:%02d:%02d.%06ld %s ",
+                        my_tm.tm_year + 1900, my_tm.tm_mon + 1, my_tm.tm_mday,
+                        my_tm.tm_hour, my_tm.tm_min, my_tm.tm_sec, now.tv_usec, s);
+        
+        // 使用 vsnprintf 将用户传入的日志内容（format 和后续参数）追加到 m_buf 中。
+        int m = vsnprintf(m_buf + n, m_log_buf_size - n - 1, format, valst);
+        m_buf[n + m] = '\n';
+        m_buf[n + m + 1] = '\0';
+        log_str = m_buf;    // 将日志缓冲区 m_buf 转换为 C++ 的 std::string，存入 log_str
+    }
 
     // 如果是异步模式（m_is_async 为 true），且日志队列未满：将格式化好的日志字符串 log_str 推送到阻塞队列中。
     if (m_is_async && !m_log_queue->full())
@@ -156,9 +155,8 @@ void Log::write_log(int level, const char *format, ...)
     }
     else
     {
-        m_mutex.lock();
+        std::lock_guard<std::mutex> lock(m_mutex);
         fputs(log_str.c_str(), m_fp);   // 使用 fputs 将日志写入到当前打开的日志文件中
-        m_mutex.unlock();
     }
 
     va_end(valst);
@@ -166,8 +164,7 @@ void Log::write_log(int level, const char *format, ...)
 
 void Log::flush(void)
 {
-    m_mutex.lock();
+    std::lock_guard<std::mutex> lock(m_mutex);
     //强制刷新写入流缓冲区
     fflush(m_fp);
-    m_mutex.unlock();
 }

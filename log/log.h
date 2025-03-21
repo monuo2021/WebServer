@@ -32,6 +32,7 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include <mutex>
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -72,9 +73,8 @@ private:
         //从阻塞队列中取出一个日志string，写入文件
         while (m_log_queue->pop(single_log))
         {
-            m_mutex.lock();
+            std::lock_guard<std::mutex> lock(m_mutex);
             fputs(single_log.c_str(), m_fp);
-            m_mutex.unlock();
         }
     }
 
@@ -89,7 +89,7 @@ private:
     char *m_buf;        // 日志缓冲区，临时存储日志内容。
     block_queue<string> *m_log_queue; // 阻塞队列，用于异步写日志。将日志内容放入队列，后台线程会从队列中读取并写入文件。
     bool m_is_async;                  // 是否启用异步日志标志位。如果为 true，则日志写入是异步的。
-    locker m_mutex;     // 锁对象，用于保护日志文件的写入，防止多线程下的竞争条件。
+    std::mutex m_mutex;     // 锁对象，用于保护日志文件的写入，防止多线程下的竞争条件。
     int m_close_log; // 关闭日志的标志。如果为 1，表示关闭日志功能，任何日志写入操作都会被忽略。
 };
 
