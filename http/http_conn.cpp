@@ -2,6 +2,7 @@
 
 #include <mysql/mysql.h>
 #include <fstream>
+#include <mutex>
 
 //定义http响应的一些状态信息
 const char *ok_200_title = "OK";
@@ -14,7 +15,7 @@ const char *error_404_form = "The requested file was not found on this server.\n
 const char *error_500_title = "Internal Error";
 const char *error_500_form = "There was an unusual problem serving the request file.\n";
 
-locker m_lock;
+std::mutex m_lock;
 map<string, string> users;
 
 void http_conn::initmysql_result(connection_pool *connPool)
@@ -439,10 +440,9 @@ http_conn::HTTP_CODE http_conn::do_request()
 
             if (users.find(name) == users.end())
             {
-                m_lock.lock();
+                std::lock_guard<std::mutex> lock(m_lock);
                 int res = mysql_query(mysql, sql_insert);
                 users.insert(pair<string, string>(name, password));
-                m_lock.unlock();
 
                 if (!res)
                     strcpy(m_url, "/log.html");
