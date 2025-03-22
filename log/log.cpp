@@ -149,7 +149,7 @@ void Log::write_log(int level, const char *format, ...)
     }
 
     // 如果是异步模式（m_is_async 为 true），且日志队列未满：将格式化好的日志字符串 log_str 推送到阻塞队列中。
-    if (m_is_async && !m_log_queue->full())
+    if (m_is_async && !m_log_queue->isFull())
     {
         m_log_queue->push(log_str);
     }
