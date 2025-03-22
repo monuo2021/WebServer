@@ -34,7 +34,7 @@ public:
         m_size = 0;
         m_front = -1;
         m_back = -1;
-        m_cond.broadcast();
+        cv_.notify_all();
     }
 
     ~block_queue() = default;
@@ -73,16 +73,14 @@ public:
         m_back = (m_back + 1) % m_max_size;
         m_array[m_back] = item;  // 假设 T 支持拷贝赋值
         ++m_size;
-        m_cond.broadcast();  // 通知消费者有新数据
+        cv_.notify_all();  // 通知消费者有新数据
         return true;
     }
 
     //pop时,如果当前队列没有元素,将会等待条件变量
     bool pop(T& item) {
         std::unique_lock<std::mutex> lock(mtx_);
-        while (m_size <= 0) {
-            m_cond.wait(&mtx_);
-        }
+        cv_.wait(lock, [this]() { return m_size > 0; });
         m_front = (m_front + 1) % m_max_size;
         item = std::move(m_array[m_front]);  // 使用移动语义提高效率
         --m_size;
@@ -93,12 +91,10 @@ public:
     bool pop(T& item, int ms_timeout) {
         std::unique_lock<std::mutex> lock(mtx_);
         if (m_size <= 0) {
-            if (!m_cond.timewait(&mtx_, ms_timeout)) {
+            if (cv_.wait_for(lock, std::chrono::milliseconds(ms_timeout), 
+                             [this]() { return m_size > 0; }) == false) {
                 return false;  // 超时返回
             }
-        }
-        if (m_size <= 0) {  // 双重检查
-            return false;
         }
         m_front = (m_front + 1) % m_max_size;
         item = std::move(m_array[m_front]);
@@ -108,7 +104,7 @@ public:
 
 private:
     std::mutex mtx_;
-    cond m_cond;
+    std::condition_variable cv_;
 
     std::unique_ptr<T[]> m_array;  // 智能指针管理数组
     int m_size;

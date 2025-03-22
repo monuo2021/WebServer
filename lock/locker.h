@@ -64,46 +64,4 @@ private:
     unsigned int count_;
 };
 
-class cond {
-public:
-    cond() = default;
-
-    cond(const cond&) = delete;
-    cond& operator=(const cond&) = delete;
-
-    void wait(std::mutex* mutex) {
-        std::unique_lock<std::mutex> lock(*mutex, std::adopt_lock);
-        cond_.wait(lock);
-        lock.release();
-    }
-
-    // 在指定的时间内等待条件变量被通知，如果在超时前被通知则返回 true，否则返回 false。​
-    bool timewait(std::mutex* mutex, int ms_timeout) {
-        // 使用 std::unique_lock 管理互斥锁，并采用 std::defer_lock 标记
-        // 表示在构造时不立即锁定互斥锁，而是在后续手动锁定
-        std::unique_lock<std::mutex> lock(*mutex, std::defer_lock);
-    
-        // 将超时时间（毫秒）转换为 std::chrono::duration
-        auto timeout_duration = std::chrono::milliseconds(ms_timeout);
-    
-        // 等待条件变量，带超时
-        // 使用 wait_for 而不是 wait_until，直接传入超时时间
-        bool result = cond_.wait_for(lock, timeout_duration) == std::cv_status::no_timeout;
-    
-        // 不需要手动释放锁，std::unique_lock 会在析构时自动解锁
-        return result;
-    }
-
-    void signal() {
-        cond_.notify_one();
-    }
-
-    void broadcast() {
-        cond_.notify_all();
-    }
-
-private:
-    std::condition_variable cond_;
-};
-
 #endif
