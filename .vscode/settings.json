@@ -55,7 +55,11 @@
         "mutex": "cpp",
         "semaphore": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "cstring": "cpp",
+        "iomanip": "cpp",
+        "sstream": "cpp",
+        "codecvt": "cpp"
     },
     "editor.fontSize": 17,
     "window.zoomLevel": 1
