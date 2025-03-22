@@ -1,16 +1,13 @@
 #ifndef BLOCK_QUEUE_H
 #define BLOCK_QUEUE_H
 
-#include <iostream>
-#include <stdlib.h>
-#include <pthread.h>
-#include <sys/time.h>
-#include "../lock/locker.h"
-using namespace std;
+#include <memory>
+#include <mutex>
+#include <condition_variable>
+#include <stdexcept>
 
-template <class T>
-class block_queue
-{
+template <typename T>
+class block_queue {
 public:
     explicit block_queue(int max_size = 1000) 
         : m_array(std::make_unique<T[]>(max_size)), 
@@ -23,8 +20,7 @@ public:
         }
     }
 
-    void clear()
-    {
+    void clear() {
         std::lock_guard<std::mutex> lock(mtx_);
         m_size = 0;
         m_front = -1;
@@ -34,28 +30,22 @@ public:
 
     ~block_queue() = default;
 
-    //判断队列是否满了
-    bool isFull()
-    {
+    bool full() const {
         std::lock_guard<std::mutex> lock(mtx_);
         return m_size >= m_max_size;
     }
-    //判断队列是否为空
-    bool isEmpty() 
-    {
+
+    bool empty() const {
         std::lock_guard<std::mutex> lock(mtx_);
         return m_size == 0;
     }
 
-    int size() const
-    {
+    int size() const {
         std::lock_guard<std::mutex> lock(mtx_);
         return m_size;
     }
 
-    int max_size() const
-    {
-        std::lock_guard<std::mutex> lock(mtx_);
+    int max_size() const {
         return m_max_size;
     }
 
@@ -64,25 +54,22 @@ public:
         if (m_size >= m_max_size) {
             return false;
         }
-        
         m_back = (m_back + 1) % m_max_size;
-        m_array[m_back] = item;  // 假设 T 支持拷贝赋值
+        m_array[m_back] = item;
         ++m_size;
-        cv_.notify_all();  // 通知消费者有新数据
+        cv_.notify_all();
         return true;
     }
 
-    //pop时,如果当前队列没有元素,将会等待条件变量
     bool pop(T& item) {
         std::unique_lock<std::mutex> lock(mtx_);
         cv_.wait(lock, [this]() { return m_size > 0; });
         m_front = (m_front + 1) % m_max_size;
-        item = std::move(m_array[m_front]);  // 使用移动语义提高效率
+        item = std::move(m_array[m_front]);
         --m_size;
         return true;
     }
 
-    // 增加了超时处理
     bool pop(T& item, int ms_timeout) {
         std::unique_lock<std::mutex> lock(mtx_);
         // 在进入等待之前，快速判断队列是否为空
@@ -90,7 +77,7 @@ public:
             // 在等待期间，​反复检查队列是否非空。防止虚假唤醒
             if (cv_.wait_for(lock, std::chrono::milliseconds(ms_timeout), 
                              [this]() { return m_size > 0; }) == false) {
-                return false;  // 超时返回
+                return false;
             }
         }
         m_front = (m_front + 1) % m_max_size;
@@ -102,8 +89,7 @@ public:
 private:
     mutable std::mutex mtx_;        // mutable 允许const方法枷锁
     std::condition_variable cv_;
-
-    std::unique_ptr<T[]> m_array;  // 智能指针管理数组
+    std::unique_ptr<T[]> m_array;   // 智能指针管理数组
     int m_size;
     const int m_max_size;
     int m_front;
