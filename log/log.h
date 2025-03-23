@@ -21,8 +21,7 @@ public:
     }
 
     // 修改 file_name 参数为 std::string 类型
-    bool init(const std::string& file_name, int close_log, 
-              int split_lines = 5000000, int max_queue_size = 0);
+    bool init(const std::string& file_name, int split_lines = 5000000, int max_queue_size = 0);
 
     void write_log(int level, const char* format, ...);
 
@@ -37,14 +36,13 @@ private:
 private:
     std::string dir_name;           // 日志文件目录路径
     std::string log_name;           // 日志文件名
-    int m_split_lines;              // 日志文件最大行
-    long long m_count;              // 已写入的日志行数
-    int m_today;                    // 当前日期，用于日志分割
-    std::ofstream m_fp;             // 日志输出文件流
-    std::unique_ptr<block_queue<std::string>> m_log_queue; // 异步日志阻塞队列
-    bool m_is_async;                // 是否异步写入日志
-    std::mutex m_mutex;             // 线程安全的互斥锁
-    int m_close_log;                // 是否关闭日志（0 = 启用）
+    int _split_lines;              // 日志文件最大行
+    long long _count;              // 已写入的日志行数
+    int _today;                    // 当前日期，用于日志分割
+    std::ofstream _fp;             // 日志输出文件流
+    std::unique_ptr<block_queue<std::string>> _log_queue; // 异步日志阻塞队列
+    bool _is_async;                // 是否异步写入日志
+    std::mutex _mutex;             // 线程安全的互斥锁
 };
 
 #define LOG_DEBUG(format, ...) if (!m_close_log) { Log::get_instance()->write_log(0, format, ##__VA_ARGS__); Log::get_instance()->flush(); }
