@@ -3,6 +3,7 @@
 #include <ctime>
 #include <iomanip>
 #include <cstdarg>
+#include <filesystem>
 
 Log::Log() : m_count(0), m_is_async(false) {}
 
@@ -48,6 +49,8 @@ bool Log::init(const std::string& file_name, int close_log, int log_buf_size, in
     // 生成带时间戳的日志文件名
     std::ostringstream oss;
     oss << dir_name << std::put_time(&my_tm, "%Y_%m_%d_") << log_name;
+    // 使用 C++17 的 std::filesystem::create_directories 确保目录存在。
+    std::filesystem::create_directories(dir_name);
     // 以追加模式打开日志文件，并检查是否成功。
     m_fp.open(oss.str(), std::ios::app);
     if (!m_fp.is_open()) {
