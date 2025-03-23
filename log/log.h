@@ -41,7 +41,7 @@ private:
     int m_today;                    // 当前日期，用于日志分割
     std::ofstream m_fp;             // 日志输出文件流
     std::string m_buf;              // 日志格式化缓冲区
-    block_queue<std::string>* m_log_queue; // 异步日志阻塞队列
+    std::unique_ptr<block_queue<std::string>> m_log_queue; // 异步日志阻塞队列
     bool m_is_async;                // 是否异步写入日志
     std::mutex m_mutex;             // 线程安全的互斥锁
     int m_close_log;                // 是否关闭日志（0 = 启用）

@@ -10,14 +10,13 @@ Log::~Log() {
     if (m_fp.is_open()) {
         m_fp.close();
     }
-    delete m_log_queue; // 清理动态分配的队列
 }
 
 bool Log::init(const std::string& file_name, int close_log, int log_buf_size, int split_lines, int max_queue_size) {
     // 若队列大小≥1，启用异步模式
     if (max_queue_size >= 1) {
         m_is_async = true;
-        m_log_queue = new block_queue<std::string>(max_queue_size);
+        m_log_queue = std::make_unique<block_queue<std::string>>(max_queue_size);
         std::thread flush_thread(flush_log_thread, nullptr);
         flush_thread.detach(); // 在后台运行
     }
