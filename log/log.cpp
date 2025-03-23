@@ -1,6 +1,8 @@
 #include "log.h"
 #include <chrono>
 #include <ctime>
+#include <vector>
+#include <iostream>
 #include <iomanip>
 #include <cstdarg>
 #include <filesystem>
@@ -126,11 +128,42 @@ void Log::flush() {
     m_fp.flush();
 }
 
+// void Log::async_write_log() {
+//     std::cout << "async_write_log start" << std::endl;
+//     std::string single_log;
+//     while (m_log_queue->pop(single_log)) {
+//         std::lock_guard<std::mutex> lock(m_mutex);
+//         m_fp << single_log;
+//         m_fp.flush();
+//     }
+// }
 void Log::async_write_log() {
-    std::string single_log;
-    while (m_log_queue->pop(single_log)) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_fp << single_log;
-        m_fp.flush();
+    std::cout << "async_write_log start" << std::endl;
+    std::vector<std::string> log_strs;
+    log_strs.reserve(500);
+
+    while (true)
+    {
+        std::string single_log;
+        while(m_log_queue->pop(single_log)) {
+            log_strs.emplace_back(std::move(single_log));
+            if(log_strs.size() >= log_strs.capacity()) {
+                break;
+            }
+        }
+
+        if(!log_strs.empty()) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            for(const auto& log : log_strs) {
+                m_fp << log;
+            }
+            m_fp.flush();
+            log_strs.clear();
+        }
+
+        // 如果队列空且无新日志，适当休眠以减少 CPU 使用
+        if(log_strs.empty() && m_log_queue->empty()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     }
 }
