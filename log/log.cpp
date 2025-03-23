@@ -130,26 +130,30 @@ void Log::flush() {
 
 void Log::async_write_log() {
     std::cout << "async_write_log start" << std::endl;
-    std::vector<std::string> batch;
-    batch.reserve(16); // 预分配空间，可根据需求调整
-    while (true) {
+    std::vector<std::string> log_strs;
+    log_strs.reserve(16);
+
+    while (true)
+    {
         std::string single_log;
-        while (m_log_queue->pop(single_log)) {
-            batch.push_back(std::move(single_log));
-            if (batch.size() >= batch.capacity()) {
+        while(m_log_queue->pop(single_log)) {
+            log_strs.emplace_back(std::move(single_log));
+            if(log_strs.size() >= log_strs.capacity()) {
                 break;
             }
         }
-        if (!batch.empty()) {
+
+        if(!log_strs.empty()) {
             std::lock_guard<std::mutex> lock(m_mutex);
-            for (const auto& log : batch) {
+            for(const auto& log : log_strs) {
                 m_fp << log;
             }
             m_fp.flush();
-            batch.clear();
+            log_strs.clear();
         }
+
         // 如果队列空且无新日志，适当休眠以减少 CPU 使用
-        if (batch.empty() && m_log_queue->empty()) {
+        if(log_strs.empty() && m_log_queue->empty()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
