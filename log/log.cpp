@@ -64,7 +64,8 @@ bool Log::init(const std::string& file_name, int close_log, int log_buf_size, in
 void Log::write_log(int level, const char* format, ...) {
     auto now = std::chrono::system_clock::now();
     std::time_t t = std::chrono::system_clock::to_time_t(now);
-    std::tm my_tm = *std::localtime(&t);
+    std::tm my_tm;
+    localtime_r(&t, &my_tm);                                    // 线程安全的替代方案
     auto us = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()) % 1000000;
 
     const char* level_str;
