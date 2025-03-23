@@ -21,7 +21,7 @@ public:
     }
 
     // 修改 file_name 参数为 std::string 类型
-    bool init(const std::string& file_name, int close_log, int log_buf_size = 8192, 
+    bool init(const std::string& file_name, int close_log, 
               int split_lines = 5000000, int max_queue_size = 0);
 
     void write_log(int level, const char* format, ...);
@@ -37,12 +37,10 @@ private:
 private:
     std::string dir_name;           // 日志文件目录路径
     std::string log_name;           // 日志文件名
-    int m_split_lines;              // 日志文件最大行数
-    int m_log_buf_size;             // 日志缓冲区大小
+    int m_split_lines;              // 日志文件最大行
     long long m_count;              // 已写入的日志行数
     int m_today;                    // 当前日期，用于日志分割
     std::ofstream m_fp;             // 日志输出文件流
-    std::string m_buf;              // 日志格式化缓冲区
     std::unique_ptr<block_queue<std::string>> m_log_queue; // 异步日志阻塞队列
     bool m_is_async;                // 是否异步写入日志
     std::mutex m_mutex;             // 线程安全的互斥锁

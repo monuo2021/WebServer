@@ -28,7 +28,8 @@
 
 - 若 `max_queue_size≥1`，启用异步模式，创建 `block_queue<std::string>` 存储日志，并启动后台线程（`flush_log_thread`）处理队列中的日志。后台线程通过 `detach` 运行，独立于主线程，减少I/O阻塞。
 
-- `async_write_log` 中使用批量处理（如收集 16 条日志后一次写入），减少频繁的 I/O 操作。
+- `async_write_log` 中使用使用带超时功能的 `pop` 进行批量处理（如收集 16 条日志后一次写入），减少频繁的 I/O 操作。
+- 队列空时休眠 1ms，减少 CPU 使用。
 
 ### 日志分割
 

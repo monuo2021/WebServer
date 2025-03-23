@@ -14,7 +14,7 @@ Log::~Log() {
     }
 }
 
-bool Log::init(const std::string& file_name, int close_log, int log_buf_size, int split_lines, int max_queue_size) {
+bool Log::init(const std::string& file_name, int close_log, int split_lines, int max_queue_size) {
     // 若队列大小≥1，启用异步模式
     if (max_queue_size >= 1) {
         m_is_async = true;
@@ -25,8 +25,6 @@ bool Log::init(const std::string& file_name, int close_log, int log_buf_size, in
 
     // 配置日志关闭标志、缓冲区大小和分割行数。
     m_close_log = close_log;
-    m_log_buf_size = log_buf_size;
-    m_buf.reserve(log_buf_size); // 预分配字符串缓冲区
     m_split_lines = split_lines;
 
     auto now = std::chrono::system_clock::now();                // 获取当前系统时间点
@@ -141,7 +139,7 @@ void Log::async_write_log() {
     std::cout << "async_write_log start" << std::endl;
     std::vector<std::string> log_strs;
     log_strs.reserve(300);
-    const size_t batch_size = 16;
+    const size_t batch_size = std::min<size_t>(16, m_log_queue->max_size() / 10); // 动态调整
 
     while (true) {
         std::string single_log;
