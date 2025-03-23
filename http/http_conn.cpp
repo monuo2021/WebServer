@@ -16,36 +16,36 @@ const char *error_500_title = "Internal Error";
 const char *error_500_form = "There was an unusual problem serving the request file.\n";
 
 std::mutex m_lock;
-map<string, string> users;
+std::map<std::string, std::string> users;
 
 void http_conn::initmysql_result(connection_pool *connPool)
 {
     //先从连接池中取一个连接
-    MYSQL *mysql = NULL;
+    MYSQL *mysql = nullptr;
     connectionRAII mysqlcon(&mysql, connPool);
 
+    if (!mysql) {
+        LOG_ERROR("Failed to get MySQL connection");
+        return;
+    }
+
     //在user表中检索username，passwd数据，浏览器端输入
-    if (mysql_query(mysql, "SELECT username,passwd FROM user"))
-    {
-        LOG_ERROR("SELECT error:%s\n", mysql_error(mysql));
+    if (mysql_query(mysql, "SELECT username, passwd FROM user")) {
+        LOG_ERROR("SELECT error: %s", mysql_error(mysql));
+        return;
     }
 
-    //从表中检索完整的结果集
-    MYSQL_RES *result = mysql_store_result(mysql);
-
-    //返回结果集中的列数
-    int num_fields = mysql_num_fields(result);
-
-    //返回所有字段结构的数组
-    MYSQL_FIELD *fields = mysql_fetch_fields(result);
-
-    //从结果集中获取下一行，将对应的用户名和密码，存入map中
-    while (MYSQL_ROW row = mysql_fetch_row(result))
-    {
-        string temp1(row[0]);
-        string temp2(row[1]);
-        users[temp1] = temp2;
+    MYSQL_RES* result = mysql_store_result(mysql);
+    if (!result) {
+        LOG_ERROR("Failed to store result: %s", mysql_error(mysql));
+        return;
     }
+
+    while (MYSQL_ROW row = mysql_fetch_row(result)) {
+        users[row[0]] = row[1];
+    }
+
+    mysql_free_result(result); // 释放结果集
 }
 
 //对文件描述符设置非阻塞
@@ -112,7 +112,7 @@ void http_conn::close_conn(bool real_close)
 
 //初始化连接,外部调用初始化套接字地址
 void http_conn::init(int sockfd, const sockaddr_in &addr, char *root, int TRIGMode,
-                     int close_log, string user, string passwd, string sqlname)
+                     int close_log, std::string user, std::string passwd, std::string sqlname)
 {
     m_sockfd = sockfd;
     m_address = addr;
@@ -442,7 +442,7 @@ http_conn::HTTP_CODE http_conn::do_request()
             {
                 std::lock_guard<std::mutex> lock(m_lock);
                 int res = mysql_query(mysql, sql_insert);
-                users.insert(pair<string, string>(name, password));
+                users.insert(std::pair<std::string, std::string>(name, password));
 
                 if (!res)
                     strcpy(m_url, "/log.html");

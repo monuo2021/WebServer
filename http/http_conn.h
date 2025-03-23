@@ -73,7 +73,7 @@ public:
     ~http_conn() {}
 
 public:
-    void init(int sockfd, const sockaddr_in &addr, char *, int, int, string user, string passwd, string sqlname);
+    void init(int sockfd, const sockaddr_in &addr, char *, int, int, std::string user, std::string passwd, std::string sqlname);
     void close_conn(bool real_close = true);
     void process();
     bool read_once();
@@ -140,7 +140,7 @@ private:
     int bytes_have_send;                        // 已经发送的字节数
     char *doc_root;                             // 网站根目录
 
-    map<string, string> m_users;                // 保存所有用户名和密码
+    std::map<std::string, std::string> m_users; // 保存所有用户名和密码
     int m_TRIGMode;                             // 触发模式
     int m_close_log;                            // 是否关闭日志
 

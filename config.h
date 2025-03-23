@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 #include "webserver.h"
+#include <iostream>
 
 class Config
 {
