@@ -24,7 +24,7 @@ set(SOURCES
     timer/lst_timer.cpp
     http/http_conn.cpp
     log/log.cpp
-    CGImysql/sql_connection_pool.cpp
+    sqlConnectionPool/sqlConnectionPool.cpp
     webserver.cpp
     config.cpp
 )

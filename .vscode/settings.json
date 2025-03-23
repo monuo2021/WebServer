@@ -59,7 +59,8 @@
         "cstring": "cpp",
         "iomanip": "cpp",
         "sstream": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "shared_mutex": "cpp"
     },
     "editor.fontSize": 17,
     "window.zoomLevel": 1
