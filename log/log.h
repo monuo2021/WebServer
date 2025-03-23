@@ -2,6 +2,7 @@
 #define LOG_H
 
 #include <mutex>
+#include <vector>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -30,6 +31,7 @@ public:
 private:
     Log();
     ~Log();
+    void write_batch(std::vector<std::string>& logs);
     void async_write_log();
 
 private:

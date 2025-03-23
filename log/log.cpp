@@ -1,7 +1,6 @@
 #include "log.h"
 #include <chrono>
 #include <ctime>
-#include <vector>
 #include <iostream>
 #include <iomanip>
 #include <cstdarg>
@@ -128,32 +127,36 @@ void Log::flush() {
     m_fp.flush();
 }
 
+void Log::write_batch(std::vector<std::string>& logs) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    for (const auto& log : logs) {
+        m_fp << log;
+    }
+    m_fp.flush();
+    logs.clear();
+}
+
 void Log::async_write_log() {
     std::cout << "async_write_log start" << std::endl;
     std::vector<std::string> log_strs;
-    log_strs.reserve(16);
+    log_strs.reserve(300);
+    const size_t batch_size = 16;
 
-    while (true)
-    {
+    while (true) {
         std::string single_log;
-        while(m_log_queue->pop(single_log)) {
+        // 使用带超时的 pop，等待 100ms
+        while (m_log_queue->pop(single_log, 100)) {
             log_strs.emplace_back(std::move(single_log));
-            if(log_strs.size() >= log_strs.capacity()) {
-                break;
+            if (log_strs.size() >= batch_size) {
+                write_batch(log_strs);
             }
         }
-
-        if(!log_strs.empty()) {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            for(const auto& log : log_strs) {
-                m_fp << log;
-            }
-            m_fp.flush();
-            log_strs.clear();
+        // 处理剩余日志
+        if (!log_strs.empty()) {
+            write_batch(log_strs);
         }
-
-        // 如果队列空且无新日志，适当休眠以减少 CPU 使用
-        if(log_strs.empty() && m_log_queue->empty()) {
+        // 队列为空时休眠
+        if (log_strs.empty() && m_log_queue->empty()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
