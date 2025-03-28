@@ -633,6 +633,8 @@ bool http_conn::add_content(const char *content)
 {
     return add_response("%s", content);
 }
+
+// 根据 HTTP_CODE 的值，生成 HTTP 响应报文，填充写缓冲区，并准备发送数据。
 bool http_conn::process_write(HTTP_CODE ret)
 {
     switch (ret)
